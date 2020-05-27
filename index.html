@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+  <head>
+	<title>AntiTery</title>
+	<meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+	<meta content="utf-8" http-equiv="encoding">
+	<style>
+	.btn {
+		background-color: orange;
+		border: none;
+		color: white;
+		padding: 20px;
+		text-align: center;
+		text-decoration: none;
+		display: inline-block;
+		font-size: 16px;
+		margin: 4px 2px;
+		height: 60px;
+		width: 60px;
+		cursor: pointer;
+		transition-duration: 0.4s;
+		border-radius: 8px;
+	}
+	.btn:hover {
+		background-color: yellow;
+		color: white;
+	}
+	.btn:active {
+		background-color: yellow;
+		box-shadow: -2px -2px gray;
+		transform: translate(2px,2px);
+	}
+	.btn_cancel {
+		background-color: red;
+		padding: 0px;
+		width: 280px;
+		height: 20px;
+	}
+	.btn_bet {
+		background-color: green;
+		width: 280px;
+	}
+	.btn_info {
+		background-color: blue;
+		padding: 0px;
+		width: 280px;
+		height: 20px;
+	}
+	div.fixed_len {
+		font-family: monospace;
+		max-width:280px;
+	}
+	</style>
+
+
+    <script type="text/javascript" src="https://code.jquery.com/jquery-1.11.1.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+
+    <script type="text/javascript">
+		var abi =  JSON.parse('[{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[],"name":"EveryoneLosses","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"","type":"uint256"}],"name":"RevealResult","type":"event"},{"anonymous":false,"inputs":[],"name":"VotingClosed","type":"event"},{"inputs":[],"name":"add_funds","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"cancel_vote","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"_max_votes","type":"uint256"}],"name":"change_maximum_of_maximum_voters","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"destroy_contract","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"get_number_votes","outputs":[{"internalType":"uint256","name":"_val","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"get_voting_balance","outputs":[{"internalType":"uint256","name":"_val","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"_decision","type":"uint256"}],"name":"make_vote","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"reveal_number_and_pay","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"withdraw_funds","outputs":[],"stateMutability":"nonpayable","type":"function"}]');
+		var address = "0x2d7037F751c8CD5dEa4Db540EbC800e7a185f1F2";
+		var contract = "";
+		var account = "";
+		var hashed_number = "";
+		
+		window.addEventListener('load', async () => {
+			if (window.ethereum) {
+				ethereum.autoRefreshOnNetworkChange = false;
+				window.web3 = new Web3(ethereum);
+				try {
+					await ethereum.enable();
+				} catch (err) {
+					$('#status').html('User denied account access', err)
+				}
+			} else if (window.web3) {
+				window.web3 = new Web3(web3.currentProvider)
+			} else {
+				$('#status').html('No Metamask (or other Web3 Provider) installed')
+			}
+			contract = new web3.eth.Contract(abi,address);
+			account = web3.currentProvider.selectedAddress;
+			document.getElementById("reveal").style.display = "none";
+		})
+
+        function information(){
+			try {
+				contract.methods.get_voting_balance().call({from: account,to: address,gas: 300000}).then(function(res){
+					console.log(res);
+					$('#balance').html(web3.utils.fromWei(res,'ether')) 
+				});
+			} catch (err) {
+				console.log(err);
+			}
+			try {
+				contract.methods.get_number_votes().call({from: account,to: address,gas: 300000}).then(function(res){
+					console.log(res);
+					$('#people').html(res);
+					if (res < 32) {
+						$('#result').html('not yet');
+						document.getElementById("reveal").style.display = "none";
+					} else {
+						$('#result').html('yes');
+						document.getElementById("reveal").style.display = "block";
+					}
+				});
+			} catch (err) {
+				console.log(err);
+			}
+
+		}
+ 		function cancel_vote(){
+			try {
+				contract.methods.cancel_vote().send({from: account,to: address,gas: 300000}).then(function(res){
+					console.log(res);
+					$('#status').html('Votes canceled');
+				});
+			} catch (err) {
+				console.log(err);
+			}
+		}
+ 		function reveal_number_and_pay(){
+			try {
+				contract.methods.reveal_number_and_pay().send({from: account,to: address,gas: 300000}).then(function(res){
+					console.log(res);
+					$('#status').html('Check your balance, you may have won!');
+				});
+			} catch (err) {
+				console.log(err);
+			}
+		}
+		function bet(){
+			try {
+				contract.methods.make_vote(hashed_number).send({
+					from: account,
+					to: address,
+					value: web3.utils.toWei($('#amount').val(),'ether'),
+					gas: 300000
+				}).then(function(res){
+					console.log(res);
+					$('#status').html('Done')
+				});
+			} catch (err) {
+				console.log(err);
+			}
+		}
+    </script>
+  </head>
+  <body>
+    <div>
+		<button onclick="$('#chosen_number').html('0')" class="btn">0</button>
+		<button onclick="$('#chosen_number').html('1')" class="btn">1</button>
+		<button onclick="$('#chosen_number').html('2')" class="btn">2</button>
+		<button onclick="$('#chosen_number').html('3')" class="btn">3</button>
+	</div>
+	<div>
+		<button onclick="$('#chosen_number').html('4')" class="btn">4</button>
+		<button onclick="$('#chosen_number').html('5')" class="btn">5</button>
+		<button onclick="$('#chosen_number').html('6')" class="btn">6</button>
+		<button onclick="$('#chosen_number').html('7')" class="btn">7</button>
+	</div>
+	<div>
+		<button onclick="$('#chosen_number').html('8')" class="btn">8</button>
+		<button onclick="$('#chosen_number').html('9')" class="btn">9</button>
+		<button onclick="$('#chosen_number').html('10')" class="btn">10</button>
+		<button onclick="$('#chosen_number').html('11')" class="btn">11</button>
+	</div>
+	<div>
+		<button onclick="$('#chosen_number').html('12')" class="btn">12</button>
+		<button onclick="$('#chosen_number').html('13')" class="btn">13</button>
+		<button onclick="$('#chosen_number').html('14')" class="btn">14</button>
+		<button onclick="$('#chosen_number').html('15')" class="btn">15</button>
+    </div>
+    
+    <pre>Eth to bet: <input id="amount" type="text" size="18"> </pre>
+    <pre>Chosen number: <span id="chosen_number"></span></pre>
+    <div><button onclick="bet()" class="btn btn_bet">Bet</button></div>
+	<div><button onclick="cancel_vote()" class="btn btn_cancel">Cancel my bets</button></div>
+    <p><span id="status"></span></p>
+    <p></p>
+    <div id="reveal"><button onclick="reveal_number_and_pay()" class="btn btn_info">Reveal the result and pay</button></div>
+    <div><button onclick="information()" class="btn btn_info">Get voting state</button></div>
+    
+    <div class="fixed_len">
+    Total amount of Eth in this voting: <span id="balance">?</span><br>
+    Current number of votes: <span id="people">?</span><br>
+    Can I reveal the result? <span id="result">?</span><br>
+    ---------------------------------------<br>
+	<em>How does it works?</em><br>
+    Each participant bets for a number.
+    After collecting 32 votes, the voting process ends and the block number B of the last vote is recorded.
+    If the voting process is closed, then the losing number is equal to the last three bits
+    of the blockhash of the block B+1,<br>
+    <br><center><strong>N := blockhash( B + 1 ) & 0xf</strong>.</center><br>
+    Any participant who voted to the number N loses and its bet is divided in equal shares 
+    between the other participants.<br>
+    ---------------------------------------<br>
+    <em>About the security.</em><br>
+	The idea of this contract is that the number N is completely
+	unknown and nobody can predict its value. Notice that if the current block
+	number is much bigger than B, then it is not possible to compute
+	N. If this is the case, everybody lose its bets. 
+	The contract encourage the voters to close the process.<br>
+    ---------------------------------------<br>
+    <em>About the contract.</em><br>
+    Contract Address: <a href=https://etherscan.io/address/0x2d7037F751c8CD5dEa4Db540EbC800e7a185f1F2>0x2d7037F751c8CD5dEa4Db540EbC800e7a185f1F2</a><br>
+    Suggestions and comments: <a href=https://github.com/cesarmassri/AntiTery/>github</a><br>
+   	---------------------------------------<br>
+    </div>
+  </body>
+</html>
